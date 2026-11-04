@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STP Challenge — Ταξινόμηση Καρτών Τμηματοποίησης</title>
+<style>
+:root{--navy:#183153;--blue:#2457a7;--bg:#f3f6fb;--ink:#202a38;--muted:#596579;--green:#18794e;--red:#b42318;--border:#d7deea}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;line-height:1.45}
+header{background:linear-gradient(120deg,#183153,#2457a7);color:white;text-align:center;padding:26px 16px}header h1{margin:0;font-size:clamp(1.65rem,4vw,2.4rem)}header p{margin:6px 0 0}
+main{max-width:1300px;margin:20px auto;padding:0 14px 35px}.panel{background:white;border-radius:16px;padding:18px;box-shadow:0 4px 18px rgba(23,43,77,.08);margin-bottom:18px}
+h2{color:var(--navy);margin:0 0 8px;font-size:1.25rem}.muted{color:var(--muted)}.introline{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.pill{background:#e8eef9;color:var(--navy);padding:5px 12px;border-radius:99px;font-size:.9rem;font-weight:bold}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 16px;font-weight:bold}
+.primary{background:var(--blue);color:#fff}.secondary{background:#e9edf4;color:var(--navy)}button:disabled{opacity:.45;cursor:not-allowed}
+.progress{height:9px;background:#e7ecf4;border-radius:99px;overflow:hidden;margin:12px 0}.bar{height:100%;width:0;background:#27835d;transition:width .2s}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px}
+.card{background:#fff;border:1px solid var(--border);border-left:5px solid #7b91b7;border-radius:12px;padding:11px 13px;cursor:grab;box-shadow:0 2px 7px rgba(27,49,80,.05);user-select:none;transition:.15s}
+.card:active{cursor:grabbing}.card.selected{outline:3px solid #78a2ed;background:#edf4ff}.card.correct{border-left-color:var(--green);background:#edfaf2}.card.incorrect{border-left-color:var(--red);background:#fff0ef}
+.board{display:grid;grid-template-columns:repeat(4,minmax(180px,1fr));gap:12px;align-items:stretch}
+.zone{border:2px dashed #c5d0e1;background:#f9fbff;border-radius:13px;min-height:220px;padding:12px;transition:.15s}
+.zone h3{font-size:1.05rem;color:var(--navy);margin:2px 0 4px}.zone .hint{font-size:.82rem;color:var(--muted);margin-bottom:10px}.zone.over{border-color:var(--blue);background:#edf4ff}.zone .card{margin-bottom:8px;cursor:pointer}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}.feedback{display:none;border-radius:11px;padding:12px 14px;margin-top:14px}.feedback.show{display:block}.feedback.good{background:#e9f7ef;color:#155d3b}.feedback.bad{background:#fff0ee;color:#8c211a}
+.score{font-weight:bold;color:var(--navy)}
+footer{text-align:center;color:var(--muted);padding:10px 15px 25px;font-size:.9rem}
+@media(max-width:960px){.board{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:540px){.board{grid-template-columns:1fr}.zone{min-height:110px}.panel{padding:14px}.cards{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header>
+<h1>STP Challenge — Τμηματοποίηση Αγοράς</h1>
+<p>Ταξινόμησε τις 20 κάρτες καταναλωτή στη σωστή κατηγορία τμηματοποίησης</p>
+<p style="font-size:.92rem;opacity:.9;margin-top:5px">Μάθημα: Πρακτική Εφαρμογή στην Ειδικότητα · Εκπαιδευτές: Γεώργιος Χούρης – Παναγιώτης Καβαρδίνας</p>
+</header>
+<main>
+<section class="panel">
+<div class="introline"><h2>Η αποστολή σου</h2><span class="pill">20 κάρτες · 4 κατηγορίες</span></div>
+<p style="margin:8px 0 4px">Σύρε (ή πάτησε) κάθε κάρτα στην αντίστοιχη κατηγορία: <b>Δημογραφικά</b>, <b>Γεωγραφικά</b>, <b>Ψυχογραφικά</b> ή <b>Συμπεριφοράς</b>. Σε κινητό/tablet, πάτησε πρώτα την κάρτα και μετά το πλαίσιο προορισμού. Μόλις τελειώσεις, πάτησε <b>Έλεγχος απαντήσεων</b>.</p>
+<div class="introline"><p class="muted" style="margin:0">Στόχος: Να ξεχωρίζεις πώς χωρίζουμε την αγορά πριν επιλέξουμε το κοινό-στόχο (Target Group).</p><span class="score" id="score">Σωστές: 0 / 20</span></div>
+<div class="progress"><div class="bar" id="bar"></div></div>
+</section>
+<section class="panel">
+<h2>Κάρτες προς ταξινόμηση</h2>
+<div id="cardsPool" class="cards"></div>
+<div class="actions">
+<button id="btnCheck" class="primary">Έλεγχος απαντήσεων</button>
+<button id="btnReset" class="secondary">Επαναφορά όλων</button>
+</div>
+<div id="feedback" class="feedback"></div>
+</section>
+<section class="panel">
+<h2>Πίνακας Τμηματοποίησης</h2>
+<div class="board">
+<div class="zone" data-category="demographic">
+<h3>Δημογραφικά [ΔΗΜ]</h3>
+<div class="hint">Ποιος είναι: Ηλικία, εισόδημα, οικογένεια, επάγγελμα, φύλο, θρήσκευμα.</div>
+<div class="droparea"></div>
+</div>
+<div class="zone" data-category="geographic">
+<h3>Γεωγραφικά [ΓΕΩ]</h3>
+<div class="hint">Πού βρίσκεται: Πόλη, περιοχή, κλίμα, πυκνότητα, απόσταση καταστήματος.</div>
+<div class="droparea"></div>
+</div>
+<div class="zone" data-category="psychographic">
+<h3>Ψυχογραφικά [ΨΥΧ]</h3>
+<div class="hint">Πώς σκέφτεται & ζει: Τρόπος ζωής (lifestyle), αξίες, ενδιαφέροντα, προσωπικότητα.</div>
+<div class="droparea"></div>
+</div>
+<div class="zone" data-category="behavioral">
+<h3>Συμπεριφοράς [ΣΥΜ]</h3>
+<div class="hint">Πώς ψωνίζει & χρησιμοποιεί: Συχνότητα, loyalty, όφελος, προσφορές, click & collect.</div>
+<div class="droparea"></div>
+</div>
+</div>
+</section>
+</main>
+<footer>
+Σχεδιασμός εκπαιδευτικής άσκησης: <b>Γεώργιος Χούρης – Παναγιώτης Καβαρδίνας</b> · Marketing Lab
+</footer>
+<script>
+const items = [
+  {id:1, text:"Ηλικιακή ομάδα (π.χ. 18-24 ετών)", cat:"demographic"},
+  {id:2, text:"Κλίμα περιοχής (π.χ. μεσογειακό, ορεινό με χαμηλές θερμοκρασίες)", cat:"geographic"},
+  {id:3, text:"Ετήσιο καθαρό οικογενειακό εισόδημα", cat:"demographic"},
+  {id:4, text:"Οικολογική συνείδηση & στροφή στη βιωσιμότητα (τρόπος ζωής)", cat:"psychographic"},
+  {id:5, text:"Συχνότητα αγοράς (π.χ. καθημερινός πελάτης take-away καφέ)", cat:"behavioral"},
+  {id:6, text:"Μέγεθος πόλης ή τόπος κατοικίας (π.χ. Θεσσαλονίκη vs κωμόπολη)", cat:"geographic"},
+  {id:7, text:"Επάγγελμα και εκπαιδευτικό επίπεδο (π.χ. φοιτητές, στελέχη)", cat:"demographic"},
+  {id:8, text:"Βαθμός αφοσίωσης στη μάρκα (Brand Loyalty - VIP κάρτα)", cat:"behavioral"},
+  {id:9, text:"Ενδιαφέρον για έντονη κοινωνική ζωή και βραδινή διασκέδαση", cat:"psychographic"},
+  {id:10, text:"Οικογενειακή κατάσταση (π.χ. ανύπαντροι, γονείς με μικρά παιδιά)", cat:"demographic"},
+  {id:11, text:"Πυκνότητα πληθυσμού (π.χ. πυκνοκατοικημένο κέντρο vs αγροτική ζώνη)", cat:"geographic"},
+  {id:12, text:"Ευαισθησία στις τιμές και κυνήγι εκπτώσεων/προσφορών (smart shopper)", cat:"behavioral"},
+  {id:13, text:"Αναζητούμενο κύριο όφελος (π.χ. ταχύτητα vs πολυτέλεια)", cat:"behavioral"},
+  {id:14, text:"Ενδιαφέρον για υγιεινή διατροφή, fitness και άσκηση", cat:"psychographic"},
+  {id:15, text:"Φύλο (π.χ. γυναίκες, άνδρες)", cat:"demographic"},
+  {id:16, text:"Απόσταση από το φυσικό κατάστημα (π.χ. ακτίνα 500μ / γειτονιά)", cat:"geographic"},
+  {id:17, text:"Προσωπικότητα που αγαπά την τεχνολογία και τις καινοτομίες (early adopter)", cat:"psychographic"},
+  {id:18, text:"Τρόπος πληρωμής & παραγγελίας (π.χ. αποκλειστικά mobile app / click & collect)", cat:"behavioral"},
+  {id:19, text:"Θρήσκευμα ή πολιτισμικές παραδόσεις (π.χ. νηστεία, διατροφικοί κανόνες)", cat:"demographic"},
+  {id:20, text:"Ώρα χρήσης / περίσταση κατανάλωσης (π.χ. πρωινή βιασύνη πριν το γραφείο)", cat:"behavioral"}
+];
+
+let selectedCard = null;
+const pool = document.getElementById("cardsPool");
+const zones = document.querySelectorAll(".zone");
+const scoreEl = document.getElementById("score");
+const barEl = document.getElementById("bar");
+const feedbackEl = document.getElementById("feedback");
+
+function renderCards(){
+  pool.innerHTML = "";
+  document.querySelectorAll(".droparea").forEach(d => d.innerHTML = "");
+  items.slice().sort(() => Math.random() - 0.5).forEach(item => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.draggable = true;
+    card.id = "card-" + item.id;
+    card.dataset.id = item.id;
+    card.dataset.correct = item.cat;
+    card.textContent = item.text;
+
+    card.addEventListener("dragstart", e => {
+      e.dataTransfer.setData("text/plain", item.id);
+      setTimeout(() => card.classList.add("selected"), 0);
+    });
+    card.addEventListener("dragend", () => card.classList.remove("selected"));
+
+    card.addEventListener("click", () => {
+      if(selectedCard === card){
+        card.classList.remove("selected");
+        selectedCard = null;
+      } else {
+        if(selectedCard) selectedCard.classList.remove("selected");
+        selectedCard = card;
+        card.classList.add("selected");
+      }
+    });
+
+    pool.appendChild(card);
+  });
+  updateProgress();
+}
+
+zones.forEach(zone => {
+  const droparea = zone.querySelector(".droparea");
+  zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("over"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("over"));
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("over");
+    const id = e.dataTransfer.getData("text/plain");
+    const card = document.getElementById("card-" + id);
+    if(card) {
+      droparea.appendChild(card);
+      card.classList.remove("selected");
+      selectedCard = null;
+      clearCardStatus(card);
+      updateProgress();
+    }
+  });
+
+  zone.addEventListener("click", () => {
+    if(selectedCard){
+      droparea.appendChild(selectedCard);
+      clearCardStatus(selectedCard);
+      selectedCard.classList.remove("selected");
+      selectedCard = null;
+      updateProgress();
+    }
+  });
+});
+
+pool.addEventListener("click", () => {
+  if(selectedCard){
+    pool.appendChild(selectedCard);
+    clearCardStatus(selectedCard);
+    selectedCard.classList.remove("selected");
+    selectedCard = null;
+    updateProgress();
+  }
+});
+
+function clearCardStatus(card){
+  card.classList.remove("correct", "incorrect");
+  feedbackEl.className = "feedback";
+}
+
+function updateProgress(){
+  const placed = document.querySelectorAll(".zone .card").length;
+  const pct = Math.round((placed / items.length) * 100);
+  barEl.style.width = pct + "%";
+}
+
+document.getElementById("btnCheck").addEventListener("click", () => {
+  let correctCount = 0;
+  const total = items.length;
+  let placedCount = 0;
+
+  zones.forEach(zone => {
+    const targetCat = zone.dataset.category;
+    const cards = zone.querySelectorAll(".card");
+    cards.forEach(card => {
+      placedCount++;
+      if(card.dataset.correct === targetCat){
+        card.classList.add("correct");
+        card.classList.remove("incorrect");
+        correctCount++;
+      } else {
+        card.classList.add("incorrect");
+        card.classList.remove("correct");
+      }
+    });
+  });
+
+  scoreEl.textContent = `Σωστές: ${correctCount} / ${total}`;
+
+  if(placedCount < total){
+    feedbackEl.className = "feedback bad show";
+    feedbackEl.innerHTML = `Έχεις ταξινομήσει <b>${placedCount} από τις ${total}</b> κάρτες. Βάλε όλες τις κάρτες στον πίνακα για να δεις το τελικό σκορ σου!`;
+  } else if(correctCount === total){
+    feedbackEl.className = "feedback good show";
+    feedbackEl.innerHTML = `🎉 <b>Άριστα 20/20!</b> Ταξινόμησες άψογα όλες τις μεταβλητές τμηματοποίησης. Τώρα είσαι έτοιμος να επιλέξεις το κοινό-στόχο (Target Group) της επιχείρησής σου!`;
+  } else {
+    feedbackEl.className = "feedback bad show";
+    feedbackEl.innerHTML = `Βρήκες <b>${correctCount} σωστές στις ${total}</b>. Οι πράσινες κάρτες είναι στη σωστή θέση, ενώ οι κόκκινες μπήκαν σε λάθος κατηγορία. Μετακίνησε τις κόκκινες και ξαναπάτα έλεγχο!`;
+  }
+});
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  renderCards();
+  scoreEl.textContent = `Σωστές: 0 / ${items.length}`;
+  barEl.style.width = "0%";
+  feedbackEl.className = "feedback";
+  selectedCard = null;
+});
+
+renderCards();
+</script>
+</body>
+</html>
